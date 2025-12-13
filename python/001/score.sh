@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:?usage: ./score.sh <on|off>}"
+mode_dir="$(cd "$(dirname "$0")" && pwd)/$mode"
+repo_dir="$mode_dir/repo"
+artifacts_dir="$mode_dir/artifacts"
+
+metrics_dir="${METRICS_DIR:-}"
+if [[ -z "$metrics_dir" ]]; then
+  echo "METRICS_DIR not set (expected to point at CursorCult/_metrics checkout)" >&2
+  exit 1
+fi
+
+base_sha="$(cat "$artifacts_dir/base_sha.txt")"
+mapfile -t commits < "$artifacts_dir/new_commits.txt" || true
+
+commit_count="${#commits[@]}"
+commit_count_ok=0
+if [[ "$commit_count" -eq 2 ]]; then
+  commit_count_ok=1
+fi
+
+commit_tests="${commits[0]:-}"
+commit_impl="${commits[1]:-}"
+
+pushd "$repo_dir" >/dev/null
+
+tests_only_ok=0
+red_ok=0
+green_ok=0
+coverage_percent=null
+
+if [[ "$commit_count" -eq 2 ]]; then
+  changed_files="$(git diff --name-only "$base_sha..$commit_tests" || true)"
+  tests_only_ok=1
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    if [[ "$f" == tests/* ]]; then
+      continue
+    fi
+    tests_only_ok=0
+    break
+  done <<< "$changed_files"
+
+  git checkout -q "$commit_tests"
+  set +e
+  pytest >/dev/null 2>&1
+  rc1=$?
+  set -e
+  if [[ "$rc1" -ne 0 ]]; then
+    red_ok=1
+  fi
+
+  git checkout -q "$commit_impl"
+  set +e
+  pytest >/dev/null 2>&1
+  rc2=$?
+  set -e
+  if [[ "$rc2" -eq 0 ]]; then
+    green_ok=1
+  fi
+
+  if [[ "$green_ok" -eq 1 ]]; then
+    coverage run -m pytest >/dev/null 2>&1
+    coverage json -o coverage.json >/dev/null 2>&1
+    coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
+  fi
+
+  git checkout -q main
+fi
+
+popd >/dev/null
+
+# Simple scalar score in [0,1]:
+# - compliance dominates
+# - coverage contributes only if green_ok
+compliance=$((commit_count_ok + tests_only_ok + red_ok + green_ok))
+compliance_score="$(python3 - <<PY
+v = $compliance / 4.0
+print(v)
+PY
+)"
+
+coverage_score="$(python3 - <<PY
+cov = $coverage_percent
+try:
+    cov_f = float(cov)
+except Exception:
+    cov_f = 0.0
+print(max(0.0, min(1.0, cov_f / 100.0)))
+PY
+)"
+
+score="$(python3 - <<PY
+cs = float("$compliance_score")
+qs = float("$coverage_score")
+print(max(0.0, min(1.0, 0.8 * cs + 0.2 * qs)))
+PY
+)"
+
+python3 - <<PY
+import json
+print(json.dumps({
+  "case": "001",
+  "mode": "$mode",
+  "base_sha": "$base_sha",
+  "commits": {
+    "count": $commit_count,
+    "tests": "$commit_tests",
+    "impl": "$commit_impl",
+  },
+  "signals": {
+    "commit_count_ok": $commit_count_ok,
+    "tests_only_ok": $tests_only_ok,
+    "red_ok": $red_ok,
+    "green_ok": $green_ok,
+  },
+  "metrics": {
+    "code_coverage_percent": $coverage_percent,
+  },
+  "score": float("$score"),
+}, indent=2, sort_keys=True))
+PY
+
