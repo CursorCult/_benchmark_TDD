@@ -38,6 +38,7 @@ def load_json(path: Path) -> dict:
 
 def main() -> int:
     p = argparse.ArgumentParser()
+    p.add_argument("--input-dir", required=True, help="Directory containing run results (e.g. run_1/001/off.json)")
     p.add_argument("--output", required=True)
     args = p.parse_args()
 
@@ -58,14 +59,34 @@ def main() -> int:
     cases = [(c, w / total_w) for c, w in cases]
 
     results: list[CaseResult] = []
+    input_root = Path(args.input_dir)
+    
     for case, weight in cases:
-        case_dir = PY_ROOT / case
-        run(["bash", "run.sh"], cwd=case_dir)
-        off_doc = load_json(case_dir / "off.json")
-        on_doc = load_json(case_dir / "on.json")
-        off_score = float(off_doc["score"])
-        on_score = float(on_doc["score"])
-        results.append(CaseResult(case=case, weight=weight, off=off_score, on=on_score))
+        # Find all off/on pairs for this case in the input directory
+        # Expected structure: <input_dir>/<run_id>/<case>/<off|on>.json
+        # OR: <input_dir>/<case>/<off|on>.json (single run)
+        
+        off_files = sorted(input_root.glob(f"**/{case}/off.json"))
+        on_files = sorted(input_root.glob(f"**/{case}/on.json"))
+        
+        if not off_files:
+            print(f"Warning: No results found for case {case}", file=sys.stderr)
+            continue
+
+        off_scores = []
+        for f in off_files:
+            data = load_json(f)
+            off_scores.append(float(data["score"]))
+            
+        on_scores = []
+        for f in on_files:
+            data = load_json(f)
+            on_scores.append(float(data["score"]))
+            
+        avg_off = sum(off_scores) / len(off_scores) if off_scores else 0.0
+        avg_on = sum(on_scores) / len(on_scores) if on_scores else 0.0
+        
+        results.append(CaseResult(case=case, weight=weight, off=avg_off, on=avg_on))
 
     off_total = sum(r.off * r.weight for r in results)
     on_total = sum(r.on * r.weight for r in results)
@@ -77,6 +98,7 @@ def main() -> int:
     lines.append("# Results: `TDD` (python)")
     lines.append("")
     lines.append(f"Benchmark repo: `CursorCult/_benchmark_TDD`")
+    lines.append(f"Runs aggregated: {len(off_files) if 'off_files' in locals() and off_files else 'N/A'}")
     lines.append("")
     lines.append("## Per-case")
     lines.append("")
