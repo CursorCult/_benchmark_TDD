@@ -22,20 +22,34 @@ pushd "$repo_dir" >/dev/null
 
 python3 -m pip install --disable-pip-version-check -q -r requirements-dev.txt
 
+if [[ -n "$rules_file" ]]; then
+  mkdir -p .cursor/rules
+  python3 -m pip install --disable-pip-version-check -q cursorcult
+
+  while IFS= read -r line; do
+    name="$(echo "$line" | awk '{print $1}')"
+    [[ -z "$name" ]] && continue
+    [[ "$name" == \#* ]] && continue
+    cursorcult copy "$name"
+  done < "$rules_file"
+
+  git add .cursor/rules
+  if ! git diff --cached --quiet; then
+    git commit -m "Apply benchmark rules" -q
+  fi
+fi
+
 base_sha="$(git rev-parse HEAD)"
 echo "$base_sha" > "$artifacts_dir/base_sha.txt"
 
 prompt="$case_dir/prompt.md"
 
-# Runner contract:
-# - one invocation
-# - agent edits this repo and produces commits
-# - if rules_file provided, apply those rules
-agent_cmd="${CURSOR_AGENT_CMD:-cursor-agent run}"
+# Runner contract: one invocation; agent edits this repo and produces commits.
+prompt_text="$(cat "$prompt")"
 
-cmd=( $agent_cmd --prompt "$prompt" )
-if [[ -n "$rules_file" ]]; then
-  cmd+=( --rules-file "$rules_file" )
+cmd=( cursor-agent -p -f agent "$prompt_text" )
+if [[ -n "${CURSOR_AGENT_MODEL:-}" ]]; then
+  cmd=( cursor-agent -p -f --model "$CURSOR_AGENT_MODEL" agent "$prompt_text" )
 fi
 
 printf "%s\n" "${cmd[@]}" > "$artifacts_dir/agent_cmd.txt"
@@ -51,4 +65,3 @@ git rev-list --reverse "$base_sha..HEAD" > "$artifacts_dir/new_commits.txt" || t
 popd >/dev/null
 
 echo "done"
-
