@@ -37,11 +37,9 @@ if [[ -n "$rules_file" ]]; then
     [[ -z "$name" ]] && continue
     [[ "$name" == \#* ]] && continue
     cursorcult copy "$name"
-
-    # Cursor Agent expects rule markdown files under .cursor/rules/.
-    # Also write a flat .md file for compatibility (in addition to the pack dir).
-    if [[ -f ".cursor/rules/$name/RULE.md" ]]; then
-      cp ".cursor/rules/$name/RULE.md" ".cursor/rules/$name.md"
+    if [[ ! -f ".cursor/rules/$name/RULE.md" ]]; then
+      echo "Expected rule file missing: .cursor/rules/$name/RULE.md" >&2
+      exit 1
     fi
   done < "$rules_file"
 
