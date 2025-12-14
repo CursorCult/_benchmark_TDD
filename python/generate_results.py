@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -60,6 +61,7 @@ def main() -> int:
 
     results: list[CaseResult] = []
     input_root = Path(args.input_dir)
+    runs_detected: set[str] = set()
     
     for case, weight in cases:
         # Find all off/on pairs for this case in the input directory
@@ -72,6 +74,13 @@ def main() -> int:
         if not off_files:
             print(f"Warning: No results found for case {case}", file=sys.stderr)
             continue
+        for f in off_files:
+            # Best-effort: treat the parent of the case dir as a run id when present.
+            # e.g. <input>/<run_1>/<case>/off.json
+            try:
+                runs_detected.add(f.parent.parent.name)
+            except Exception:
+                pass
 
         off_scores = []
         for f in off_files:
@@ -98,7 +107,7 @@ def main() -> int:
     lines.append("# Results: `TDD` (python)")
     lines.append("")
     lines.append(f"Benchmark repo: `CursorCult/_benchmark_TDD`")
-    lines.append(f"Runs aggregated: {len(off_files) if 'off_files' in locals() and off_files else 'N/A'}")
+    lines.append(f"Runs aggregated: {len(runs_detected) if runs_detected else 1}")
     lines.append("")
     lines.append("## Per-case")
     lines.append("")
@@ -119,4 +128,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

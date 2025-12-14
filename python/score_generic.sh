@@ -75,31 +75,12 @@ seen_t=0
 seen_i=0
 phase="red"
 
-if [[ "$commit_count" -eq 0 ]]; then
+if [[ "$commit_count" -ne 2 ]]; then
   compliance_ok=0
 else
-  for c_type in "${commit_types[@]}"; do
-    if [[ "$c_type" == "M" ]]; then 
-      compliance_ok=0
-      break
-    fi
-    
-    if [[ "$phase" == "red" ]]; then
-      if [[ "$c_type" == "T" ]]; then seen_t=1; fi
-      if [[ "$c_type" == "I" ]]; then
-        phase="green"
-        seen_i=1
-      fi
-    else # green phase
-      if [[ "$c_type" == "T" ]]; then 
-        compliance_ok=0
-        break 
-      fi
-      if [[ "$c_type" == "I" ]]; then seen_i=1; fi
-    fi
-  done
-  
-  if [[ "$seen_t" -eq 0 || "$seen_i" -eq 0 ]]; then
+  if [[ "${commit_types[0]}" == "T" ]]; then seen_t=1; fi
+  if [[ "${commit_types[1]}" == "I" ]]; then seen_i=1; fi
+  if [[ "$seen_t" -ne 1 || "$seen_i" -ne 1 ]]; then
     compliance_ok=0
   fi
 fi

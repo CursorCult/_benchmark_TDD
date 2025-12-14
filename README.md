@@ -21,10 +21,8 @@ Expected shape for compliance:
 ## Running (one case)
 
 ```sh
-cd python
-./setup_env.sh
 cd python/001
-./run.sh
+CURSOR_AGENT_MODEL=auto ./run.sh
 ```
 
 ## License
