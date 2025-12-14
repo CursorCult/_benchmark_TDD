@@ -20,17 +20,7 @@ mkdir -p "$artifacts_dir"
 
 pushd "$repo_dir" >/dev/null
 
-if ! python3 -c "import pytest" >/dev/null 2>&1; then
-  echo "Missing pytest for benchmark evaluation." >&2
-  echo "Install once with: python3 -m pip install --user pytest" >&2
-  exit 1
-fi
-
-if ! python3 -c "import coverage" >/dev/null 2>&1; then
-  echo "Missing coverage for benchmark evaluation." >&2
-  echo "Install once with: python3 -m pip install --user coverage" >&2
-  exit 1
-fi
+python3 -c "import sys; print(sys.version.split()[0])" > "$artifacts_dir/python_version.txt"
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules

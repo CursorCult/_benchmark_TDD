@@ -12,23 +12,6 @@ cd "$mode/repo"
 git init -q
 git checkout -b main -q
 
-cat > pyproject.toml <<'TOML'
-[project]
-name = "tdd_bench_case_001"
-version = "0.0.0"
-requires-python = ">=3.10"
-dependencies = []
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-q"
-TOML
-
-cat > requirements-dev.txt <<'REQ'
-pytest==8.3.3
-coverage==7.6.1
-REQ
-
 mkdir -p src tests
 
 touch src/__init__.py
@@ -39,11 +22,18 @@ def add(a: int, b: int) -> int:
 PY
 
 cat > tests/test_smoke.py <<'PY'
+import unittest
+
 from src.calc import add
 
 
-def test_add_smoke():
-    assert add(1, 2) == 3
+class TestSmoke(unittest.TestCase):
+    def test_add_smoke(self):
+        self.assertEqual(add(1, 2), 3)
+
+
+if __name__ == "__main__":
+    unittest.main()
 PY
 
 git add .

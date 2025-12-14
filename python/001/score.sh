@@ -37,20 +37,27 @@ tests_only_ok=0
 red_ok=0
 green_ok=0
 head_ok=0
+coverage_available=0
 coverage_percent=""
 
 head_sha="$(git rev-parse HEAD)"
 
+if python3 -m coverage --version >/dev/null 2>&1; then
+  coverage_available=1
+fi
+
 if [[ "$agent_rc" -eq 0 ]]; then
   set +e
-  python3 -m pytest >/dev/null 2>&1
+  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   head_rc=$?
   set -e
   if [[ "$head_rc" -eq 0 ]]; then
     head_ok=1
-    python3 -m coverage run --source=src -m pytest >/dev/null 2>&1
-    python3 -m coverage json -o coverage.json >/dev/null 2>&1
-    coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
+    if [[ "$coverage_available" -eq 1 ]]; then
+      python3 -m coverage run --source=src -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
+      python3 -m coverage json -o coverage.json >/dev/null 2>&1
+      coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
+    fi
   fi
 fi
 
@@ -68,7 +75,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_tests"
   set +e
-  python3 -m pytest >/dev/null 2>&1
+  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   rc1=$?
   set -e
   if [[ "$rc1" -ne 0 ]]; then
@@ -77,7 +84,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_impl"
   set +e
-  python3 -m pytest >/dev/null 2>&1
+  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   rc2=$?
   set -e
   if [[ "$rc2" -eq 0 ]]; then
@@ -113,7 +120,11 @@ PY
 quality_score="$(python3 - <<PY
 head_ok = $head_ok
 cov = float("$coverage_score")
-print(0.5 * head_ok + 0.5 * cov)
+cov_available = $coverage_available
+if cov_available == 1:
+    print(0.5 * head_ok + 0.5 * cov)
+else:
+    print(1.0 * head_ok)
 PY
 )"
 
@@ -147,6 +158,7 @@ print(json.dumps({
     "red_ok": $red_ok,
     "green_ok": $green_ok,
     "head_ok": $head_ok,
+    "coverage_available": $coverage_available,
   },
   "metrics": {
     "code_coverage_percent": cov,

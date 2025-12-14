@@ -7,10 +7,8 @@ This case is designed to make “tests-first then implementation” measurable v
 - commit 1: add failing tests for the new feature
 - commit 2: implement to make tests pass
 
-## Prereqs (install once)
+## Prereqs
 
-This benchmark runner expects `pytest` and `coverage` to be importable by `python3`:
+None. This case uses stdlib `unittest`.
 
-```sh
-python3 -m pip install --user pytest coverage
-```
+If `coverage` is available on your machine, the scorer will also report code coverage; otherwise coverage is omitted.
