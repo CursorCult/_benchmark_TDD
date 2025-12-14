@@ -24,7 +24,7 @@ python3 -m pip install --disable-pip-version-check -q -r requirements-dev.txt
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules
-  rule_ref="${BENCH_RULE_REF:-main}"
+  rule_ref="${BENCH_RULE_REF:-v0}"
 
   install_rule_from_git () {
     local name="$1"
@@ -62,9 +62,7 @@ if [[ -n "$rules_file" ]]; then
       install_rule_from_git "$name" "$rule_ref"
     fi
 
-    # Cursor Agent only loads top-level `.cursor/rules/*.md`.
-    # Keep the pack directory, but also expose the rule as a top-level file.
-    cp ".cursor/rules/$name/RULE.md" ".cursor/rules/$name.md"
+    # Cursor rules live at `.cursor/rules/<NAME>/RULE.md`.
   done < "$rules_file"
 
   git add .cursor/rules
