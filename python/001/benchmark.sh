@@ -26,11 +26,23 @@ if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules
   python3 -m pip install --disable-pip-version-check -q cursorcult
 
+  if [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" ]]; then
+    if command -v gh >/dev/null 2>&1; then
+      export GH_TOKEN="$(gh auth token 2>/dev/null || true)"
+    fi
+  fi
+
   while IFS= read -r line; do
     name="$(echo "$line" | awk '{print $1}')"
     [[ -z "$name" ]] && continue
     [[ "$name" == \#* ]] && continue
     cursorcult copy "$name"
+
+    # Cursor Agent expects rule markdown files under .cursor/rules/.
+    # Also write a flat .md file for compatibility (in addition to the pack dir).
+    if [[ -f ".cursor/rules/$name/RULE.md" ]]; then
+      cp ".cursor/rules/$name/RULE.md" ".cursor/rules/$name.md"
+    fi
   done < "$rules_file"
 
   git add .cursor/rules

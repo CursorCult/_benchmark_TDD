@@ -36,7 +36,23 @@ pushd "$repo_dir" >/dev/null
 tests_only_ok=0
 red_ok=0
 green_ok=0
+head_ok=0
 coverage_percent=""
+
+head_sha="$(git rev-parse HEAD)"
+
+if [[ "$agent_rc" -eq 0 ]]; then
+  set +e
+  python3 -m pytest >/dev/null 2>&1
+  head_rc=$?
+  set -e
+  if [[ "$head_rc" -eq 0 ]]; then
+    head_ok=1
+    python3 -m coverage run --source=src -m pytest >/dev/null 2>&1
+    python3 -m coverage json -o coverage.json >/dev/null 2>&1
+    coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
+  fi
+fi
 
 if [[ "$commit_count" -eq 2 ]]; then
   changed_files="$(git diff --name-only "$base_sha..$commit_tests" || true)"
@@ -68,24 +84,19 @@ if [[ "$commit_count" -eq 2 ]]; then
     green_ok=1
   fi
 
-  if [[ "$green_ok" -eq 1 ]]; then
-    python3 -m coverage run -m pytest >/dev/null 2>&1
-    python3 -m coverage json -o coverage.json >/dev/null 2>&1
-    coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
-  fi
-
   git checkout -q main
 fi
 
 popd >/dev/null
 
-# Simple scalar score in [0,1]:
-# - compliance dominates
-# - coverage contributes only if green_ok
-compliance=$((commit_count_ok + tests_only_ok + red_ok + green_ok))
+# Compliance score in [0,1]:
+# - strict: only score compliance if there are exactly 2 commits
 compliance_score="$(python3 - <<PY
-v = $compliance / 4.0
-print(v)
+cc = $commit_count_ok
+if cc != 1:
+    print(0.0)
+else:
+    print(($tests_only_ok + $red_ok + $green_ok) / 3.0)
 PY
 )"
 
@@ -99,9 +110,16 @@ print(max(0.0, min(1.0, cov_f / 100.0)))
 PY
 )"
 
+quality_score="$(python3 - <<PY
+head_ok = $head_ok
+cov = float("$coverage_score")
+print(0.5 * head_ok + 0.5 * cov)
+PY
+)"
+
 score="$(python3 - <<PY
 cs = float("$compliance_score")
-qs = float("$coverage_score")
+qs = float("$quality_score")
 print(max(0.0, min(1.0, 0.8 * cs + 0.2 * qs)))
 PY
 )"
@@ -117,6 +135,7 @@ print(json.dumps({
   "mode": "$mode",
   "agent_rc": int("$agent_rc"),
   "base_sha": "$base_sha",
+  "head_sha": "$head_sha",
   "commits": {
     "count": $commit_count,
     "tests": "$commit_tests",
@@ -127,9 +146,14 @@ print(json.dumps({
     "tests_only_ok": $tests_only_ok,
     "red_ok": $red_ok,
     "green_ok": $green_ok,
+    "head_ok": $head_ok,
   },
   "metrics": {
     "code_coverage_percent": cov,
+  },
+  "components": {
+    "compliance_score": float("$compliance_score"),
+    "quality_score": float("$quality_score"),
   },
   "score": float("$score"),
 }, indent=2, sort_keys=True))
