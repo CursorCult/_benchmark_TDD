@@ -47,10 +47,8 @@ prompt="$case_dir/prompt.md"
 # Runner contract: one invocation; agent edits this repo and produces commits.
 prompt_text="$(cat "$prompt")"
 
-cmd=( cursor-agent -p -f agent "$prompt_text" )
-if [[ -n "${CURSOR_AGENT_MODEL:-}" ]]; then
-  cmd=( cursor-agent -p -f --model "$CURSOR_AGENT_MODEL" agent "$prompt_text" )
-fi
+model="${CURSOR_AGENT_MODEL:-auto}"
+cmd=( cursor-agent -p -f --model "$model" agent "$prompt_text" )
 
 printf "%s\n" "${cmd[@]}" > "$artifacts_dir/agent_cmd.txt"
 
