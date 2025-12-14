@@ -10,8 +10,6 @@ case_dir="$(cd "$(dirname "$0")" && pwd)"
 mode_dir="$(pwd)"
 repo_dir="$mode_dir/repo"
 artifacts_dir="$mode_dir/artifacts"
-venv_dir="$mode_dir/.venv"
-venv_python="$venv_dir/bin/python"
 
 if [[ ! -d "$repo_dir/.git" ]]; then
   echo "missing repo: $repo_dir (run ./setup.sh first)" >&2
@@ -22,11 +20,7 @@ mkdir -p "$artifacts_dir"
 
 pushd "$repo_dir" >/dev/null
 
-if [[ ! -x "$venv_python" ]]; then
-  python3 -m venv "$venv_dir"
-fi
-
-"$venv_python" -m pip install --disable-pip-version-check -q -r requirements-dev.txt
+python3 -m pip install --user --disable-pip-version-check -q -r requirements-dev.txt
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules

@@ -5,15 +5,10 @@ mode="${1:?usage: ./score.sh <on|off>}"
 mode_dir="$(cd "$(dirname "$0")" && pwd)/$mode"
 repo_dir="$mode_dir/repo"
 artifacts_dir="$mode_dir/artifacts"
-venv_python="$mode_dir/.venv/bin/python"
 
 metrics_dir="${METRICS_DIR:-}"
 if [[ -z "$metrics_dir" ]]; then
   echo "METRICS_DIR not set (expected to point at CursorCult/_metrics checkout)" >&2
-  exit 1
-fi
-if [[ ! -x "$venv_python" ]]; then
-  echo "Missing venv at $mode_dir/.venv (run benchmark.sh first)" >&2
   exit 1
 fi
 
@@ -48,14 +43,14 @@ head_sha="$(git rev-parse HEAD)"
 
 if [[ "$agent_rc" -eq 0 ]]; then
   set +e
-  "$venv_python" -m pytest >/dev/null 2>&1
+  python3 -m pytest >/dev/null 2>&1
   head_rc=$?
   set -e
   if [[ "$head_rc" -eq 0 ]]; then
     head_ok=1
-    "$venv_python" -m coverage run --source=src -m pytest >/dev/null 2>&1
-    "$venv_python" -m coverage json -o coverage.json >/dev/null 2>&1
-    coverage_percent="$("$venv_python" "$metrics_dir/python/code_coverage.py" coverage.json)"
+    python3 -m coverage run --source=src -m pytest >/dev/null 2>&1
+    python3 -m coverage json -o coverage.json >/dev/null 2>&1
+    coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
   fi
 fi
 
@@ -73,7 +68,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_tests"
   set +e
-  "$venv_python" -m pytest >/dev/null 2>&1
+  python3 -m pytest >/dev/null 2>&1
   rc1=$?
   set -e
   if [[ "$rc1" -ne 0 ]]; then
@@ -82,7 +77,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_impl"
   set +e
-  "$venv_python" -m pytest >/dev/null 2>&1
+  python3 -m pytest >/dev/null 2>&1
   rc2=$?
   set -e
   if [[ "$rc2" -eq 0 ]]; then
