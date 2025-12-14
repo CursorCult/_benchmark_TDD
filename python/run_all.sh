@@ -11,8 +11,8 @@ output_dir="${1:-}"
 
 cases=()
 while IFS= read -r d; do
-  cases+=("$d")
-done < <(find "$root" -mindepth 1 -maxdepth 1 -type d -name "[0-9][0-9][0-9]" | sort)
+  cases+=("$(dirname "$d")")
+done < <(find "$root" -mindepth 2 -maxdepth 2 -name "run.sh" | sort)
 
 if [[ "${#cases[@]}" -eq 0 ]]; then
   echo "no cases found under $root" >&2
