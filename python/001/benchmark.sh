@@ -24,23 +24,47 @@ python3 -m pip install --disable-pip-version-check -q -r requirements-dev.txt
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules
-  python3 -m pip install --disable-pip-version-check -q cursorcult
+  rule_ref="${BENCH_RULE_REF:-main}"
 
-  if [[ -z "${GH_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" ]]; then
-    if command -v gh >/dev/null 2>&1; then
-      export GH_TOKEN="$(gh auth token 2>/dev/null || true)"
+  install_rule_from_git () {
+    local name="$1"
+    local ref="$2"
+    local url="https://github.com/CursorCult/${name}.git"
+
+    local tmp
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' RETURN
+
+    # Try as a branch first, then fall back to fetching and checking out the ref.
+    if git clone -q --depth 1 --branch "$ref" "$url" "$tmp/repo" 2>/dev/null; then
+      :
+    else
+      git clone -q --no-checkout "$url" "$tmp/repo"
+      git -C "$tmp/repo" checkout -q "$ref"
     fi
-  fi
+
+    if [[ ! -f "$tmp/repo/RULE.md" ]]; then
+      echo "Rule repo missing RULE.md at ref '$ref': $url" >&2
+      exit 1
+    fi
+
+    mkdir -p ".cursor/rules/$name"
+    cp "$tmp/repo/RULE.md" ".cursor/rules/$name/RULE.md"
+    [[ -f "$tmp/repo/README.md" ]] && cp "$tmp/repo/README.md" ".cursor/rules/$name/README.md" || true
+    [[ -f "$tmp/repo/LICENSE" ]] && cp "$tmp/repo/LICENSE" ".cursor/rules/$name/LICENSE" || true
+  }
 
   while IFS= read -r line; do
     name="$(echo "$line" | awk '{print $1}')"
     [[ -z "$name" ]] && continue
     [[ "$name" == \#* ]] && continue
-    cursorcult copy "$name"
     if [[ ! -f ".cursor/rules/$name/RULE.md" ]]; then
-      echo "Expected rule file missing: .cursor/rules/$name/RULE.md" >&2
-      exit 1
+      install_rule_from_git "$name" "$rule_ref"
     fi
+
+    # Cursor Agent only loads top-level `.cursor/rules/*.md`.
+    # Keep the pack directory, but also expose the rule as a top-level file.
+    cp ".cursor/rules/$name/RULE.md" ".cursor/rules/$name.md"
   done < "$rules_file"
 
   git add .cursor/rules
