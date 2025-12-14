@@ -13,7 +13,13 @@ if [[ -z "$metrics_dir" ]]; then
 fi
 
 base_sha="$(cat "$artifacts_dir/base_sha.txt")"
-mapfile -t commits < "$artifacts_dir/new_commits.txt" || true
+commits=()
+if [[ -f "$artifacts_dir/new_commits.txt" ]]; then
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    commits+=("$line")
+  done < "$artifacts_dir/new_commits.txt"
+fi
 
 commit_count="${#commits[@]}"
 commit_count_ok=0
@@ -122,4 +128,3 @@ print(json.dumps({
   "score": float("$score"),
 }, indent=2, sort_keys=True))
 PY
-
