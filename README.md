@@ -2,6 +2,12 @@
 
 Benchmark harness for the CursorCult `TDD` rule.
 
+## Prerequisites
+
+1.  **`cursor-agent` installed**: The CLI tool must be in your PATH.
+2.  **Authenticated**: Run `cursor-agent login` before starting (or ensure you have a valid session).
+3.  **Cost Awareness**: Benchmark runs invoke real LLM inference, which may incur API costs and time.
+
 ## How it works (high level)
 
 Each case lives under `python/<case>/` and runs twice:

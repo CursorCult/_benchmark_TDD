@@ -1,5 +1,11 @@
 # Python benchmarks
 
+## Prerequisites
+
+1.  **`cursor-agent` installed**: The CLI tool must be in your PATH.
+2.  **Authenticated**: Run `cursor-agent login`.
+3.  **Cost Awareness**: Runs invoke real LLM inference.
+
 Each directory is a benchmark case. Currently available cases:
 - `simple_add`: Basic function addition, no explicit TDD prompt.
 - `simple_add_prompted`: Basic function addition, with explicit TDD instructions in the prompt.

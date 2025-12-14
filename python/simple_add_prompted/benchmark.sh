@@ -31,7 +31,7 @@ python3 -c "import sys; print(sys.version.split()[0])" > "$artifacts_dir/python_
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules
-  rule_ref="${BENCH_RULE_REF:-v0}"
+  rule_ref="${BENCH_RULE_REF:-latest}"
 
   install_rule_from_git () {
     local name="$1"
@@ -42,16 +42,33 @@ if [[ -n "$rules_file" ]]; then
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"' RETURN
 
-    # Try as a branch first, then fall back to fetching and checking out the ref.
-    if git clone -q --depth 1 --branch "$ref" "$url" "$tmp/repo" 2>/dev/null; then
-      :
+    local target_ref="$ref"
+
+    if [[ "$ref" == "latest" ]]; then
+      git clone -q "$url" "$tmp/repo"
+      # Find latest v* tag (numerical sort)
+      target_ref="$(git -C "$tmp/repo" tag -l "v*" | sort -V | tail -n1)"
+      if [[ -z "$target_ref" ]]; then 
+        echo "No v-tags found for $name, using main" >&2
+        target_ref="main" 
+      fi
+      git -C "$tmp/repo" checkout -q "$target_ref"
     else
-      git clone -q --no-checkout "$url" "$tmp/repo"
-      git -C "$tmp/repo" checkout -q "$ref"
+      # Explicit ref
+      if git clone -q --depth 1 --branch "$ref" "$url" "$tmp/repo" 2>/dev/null; then
+        :
+      else
+        git clone -q --no-checkout "$url" "$tmp/repo"
+        git -C "$tmp/repo" checkout -q "$ref"
+      fi
     fi
 
+    local sha
+    sha="$(git -C "$tmp/repo" rev-parse HEAD)"
+    echo "$name:$target_ref:$sha" >> "$artifacts_dir/rule_provenance.txt"
+
     if [[ ! -f "$tmp/repo/RULE.md" ]]; then
-      echo "Rule repo missing RULE.md at ref '$ref': $url" >&2
+      echo "Rule repo missing RULE.md at ref '$target_ref': $url" >&2
       exit 1
     fi
 
