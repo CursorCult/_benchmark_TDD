@@ -31,6 +31,8 @@ REQ
 
 mkdir -p src tests
 
+touch src/__init__.py
+
 cat > src/calc.py <<'PY'
 def add(a: int, b: int) -> int:
     return a + b
@@ -48,4 +50,3 @@ git add .
 git commit -m "baseline" -q
 
 echo "ok"
-
