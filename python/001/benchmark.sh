@@ -54,10 +54,30 @@ fi
 
 printf "%s\n" "${cmd[@]}" > "$artifacts_dir/agent_cmd.txt"
 
-set +e
-"${cmd[@]}" 2>&1 | tee "$artifacts_dir/agent.log"
-agent_rc="${PIPESTATUS[0]}"
-set -e
+agent_rc=1
+attempt=1
+delay_s=5
+max_attempts="${CURSOR_AGENT_MAX_ATTEMPTS:-4}"
+while [[ "$attempt" -le "$max_attempts" ]]; do
+  set +e
+  "${cmd[@]}" >"$artifacts_dir/agent.log" 2>&1
+  agent_rc=$?
+  set -e
+
+  if [[ "$agent_rc" -eq 0 ]]; then
+    break
+  fi
+
+  if grep -qi "resource_exhausted" "$artifacts_dir/agent.log"; then
+    echo "cursor-agent resource_exhausted (attempt $attempt/$max_attempts), retrying in ${delay_s}s..." >&2
+    sleep "$delay_s"
+    delay_s=$((delay_s * 2))
+    attempt=$((attempt + 1))
+    continue
+  fi
+
+  break
+done
 echo "$agent_rc" > "$artifacts_dir/agent_rc.txt"
 
 git rev-list --reverse "$base_sha..HEAD" > "$artifacts_dir/new_commits.txt" || true
