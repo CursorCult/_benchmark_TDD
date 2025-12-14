@@ -19,10 +19,10 @@ run_mode () {
 }
 
 run_mode off
-METRICS_DIR="${METRICS_DIR:-$root_dir/../_metrics}" "$case_dir/score.sh" off > "$case_dir/off.json"
+"$case_dir/score.sh" off > "$case_dir/off.json"
 
 run_mode on "$root_dir/RULES.txt"
-METRICS_DIR="${METRICS_DIR:-$root_dir/../_metrics}" "$case_dir/score.sh" on > "$case_dir/on.json"
+"$case_dir/score.sh" on > "$case_dir/on.json"
 
 echo "wrote: $case_dir/off.json $case_dir/on.json"
 

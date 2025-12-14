@@ -2,13 +2,14 @@
 set -euo pipefail
 
 mode="${1:?usage: ./score.sh <on|off>}"
-mode_dir="$(cd "$(dirname "$0")" && pwd)/$mode"
+case_dir="$(cd "$(dirname "$0")" && pwd)"
+mode_dir="$case_dir/$mode"
 repo_dir="$mode_dir/repo"
 artifacts_dir="$mode_dir/artifacts"
-venv_python="$mode_dir/.venv/bin/python"
+venv_python="$case_dir/../.venv/bin/python"
 
 if [[ ! -x "$venv_python" ]]; then
-  echo "missing venv at $mode_dir/.venv (run benchmark.sh first)" >&2
+  echo "missing shared venv at $venv_python" >&2
   exit 1
 fi
 
@@ -69,23 +70,33 @@ PY
 fi
 
 if [[ "$commit_count" -eq 2 ]]; then
+  # Check strict RED phase:
+  # 1. Tests only: No changes to src/
+  # 2. Red OK: New tests fail, but baseline environment (test_smoke.py) must pass.
+  
   changed_files="$(git diff --name-only "$base_sha..$commit_tests" || true)"
   tests_only_ok=1
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
-    if [[ "$f" == tests/* ]]; then
-      continue
+    if [[ "$f" == src/* ]]; then
+      tests_only_ok=0
+      break
     fi
-    tests_only_ok=0
-    break
   done <<< "$changed_files"
 
   git checkout -q "$commit_tests"
+  
   set +e
+  # Verify baseline smoke test still passes (env check)
+  "$venv_python" -m unittest tests/test_smoke.py >/dev/null 2>&1
+  smoke_rc=$?
+  
+  # Verify full suite fails
   "$venv_python" -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
-  rc1=$?
+  full_rc=$?
   set -e
-  if [[ "$rc1" -ne 0 ]]; then
+
+  if [[ "$smoke_rc" -eq 0 && "$full_rc" -ne 0 ]]; then
     red_ok=1
   fi
 

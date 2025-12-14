@@ -10,12 +10,16 @@ case_dir="$(cd "$(dirname "$0")" && pwd)"
 mode_dir="$(pwd)"
 repo_dir="$mode_dir/repo"
 artifacts_dir="$mode_dir/artifacts"
-req_file="$case_dir/../requirements.txt"
-venv_dir="$mode_dir/.venv"
+venv_dir="$case_dir/../.venv"
 venv_python="$venv_dir/bin/python"
 
 if [[ ! -d "$repo_dir/.git" ]]; then
   echo "missing repo: $repo_dir (run ./setup.sh first)" >&2
+  exit 1
+fi
+
+if [[ ! -x "$venv_python" ]]; then
+  echo "missing shared venv: $venv_python (run ../setup_env.sh)" >&2
   exit 1
 fi
 
@@ -24,17 +28,6 @@ mkdir -p "$artifacts_dir"
 pushd "$repo_dir" >/dev/null
 
 python3 -c "import sys; print(sys.version.split()[0])" > "$artifacts_dir/python_version.txt"
-
-if [[ ! -f "$req_file" ]]; then
-  echo "missing requirements file: $req_file" >&2
-  exit 1
-fi
-
-if [[ ! -x "$venv_python" ]]; then
-  python3 -m venv "$venv_dir"
-fi
-
-"$venv_python" -m pip install --disable-pip-version-check -q -r "$req_file"
 
 if [[ -n "$rules_file" ]]; then
   mkdir -p .cursor/rules

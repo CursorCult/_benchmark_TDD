@@ -38,11 +38,8 @@ def load_json(path: Path) -> dict:
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--metrics-dir", required=True)
     p.add_argument("--output", required=True)
     args = p.parse_args()
-
-    os.environ["METRICS_DIR"] = args.metrics_dir
 
     weights_path = PY_ROOT / "weights.json"
     weights = json.loads(weights_path.read_text(encoding="utf-8"))
