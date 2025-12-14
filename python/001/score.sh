@@ -5,10 +5,10 @@ mode="${1:?usage: ./score.sh <on|off>}"
 mode_dir="$(cd "$(dirname "$0")" && pwd)/$mode"
 repo_dir="$mode_dir/repo"
 artifacts_dir="$mode_dir/artifacts"
+venv_python="$mode_dir/.venv/bin/python"
 
-metrics_dir="${METRICS_DIR:-}"
-if [[ -z "$metrics_dir" ]]; then
-  echo "METRICS_DIR not set (expected to point at CursorCult/_metrics checkout)" >&2
+if [[ ! -x "$venv_python" ]]; then
+  echo "missing venv at $mode_dir/.venv (run benchmark.sh first)" >&2
   exit 1
 fi
 
@@ -42,21 +42,28 @@ coverage_percent=""
 
 head_sha="$(git rev-parse HEAD)"
 
-if python3 -m coverage --version >/dev/null 2>&1; then
+if "$venv_python" -m coverage --version >/dev/null 2>&1; then
   coverage_available=1
 fi
 
 if [[ "$agent_rc" -eq 0 ]]; then
   set +e
-  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
+  "$venv_python" -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   head_rc=$?
   set -e
   if [[ "$head_rc" -eq 0 ]]; then
     head_ok=1
     if [[ "$coverage_available" -eq 1 ]]; then
-      python3 -m coverage run --source=src -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
-      python3 -m coverage json -o coverage.json >/dev/null 2>&1
-      coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
+      "$venv_python" -m coverage run --source=src -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
+      "$venv_python" -m coverage json -o coverage.json >/dev/null 2>&1
+      coverage_percent="$("$venv_python" - <<'PY'
+import json
+with open("coverage.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+totals = data.get("totals") or {}
+print(float(totals.get("percent_covered", 0.0)))
+PY
+)"
     fi
   fi
 fi
@@ -75,7 +82,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_tests"
   set +e
-  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
+  "$venv_python" -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   rc1=$?
   set -e
   if [[ "$rc1" -ne 0 ]]; then
@@ -84,7 +91,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_impl"
   set +e
-  python3 -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
+  "$venv_python" -m unittest discover -s tests -p "test_*.py" >/dev/null 2>&1
   rc2=$?
   set -e
   if [[ "$rc2" -eq 0 ]]; then
