@@ -1,4 +1,4 @@
-# Case 001: Simple feature addition
+# Case: Simple feature addition (variant)
 
 Goal: ask the agent to add a small, well-specified feature to a tiny Python project.
 

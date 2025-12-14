@@ -16,5 +16,5 @@ Create the shared Python environment once:
 
 ## Run
 
-- One case: `cd 001 && ./run.sh`
+- One case: `cd simple_add && ./run.sh`
 - All cases: `./run_all.sh`

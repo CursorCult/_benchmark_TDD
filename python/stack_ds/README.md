@@ -1,10 +1,10 @@
-# Case 003: Simple feature addition (variant)
+# Case: Stack data structure
 
-Goal: ask the agent to add a small, well-specified feature to a tiny Python project.
+Goal: ask the agent to implement a small data structure with clear behavioral requirements.
 
 This case is designed to make “tests-first then implementation” measurable via commits:
 
-- commit 1: add failing tests for the new feature
+- commit 1: add failing tests for the new behavior
 - commit 2: implement to make tests pass
 
 ## Prereqs

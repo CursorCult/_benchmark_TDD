@@ -21,7 +21,7 @@ Expected shape for compliance:
 ## Running (one case)
 
 ```sh
-cd python/001
+cd python/simple_add
 CURSOR_AGENT_MODEL=auto ./run.sh
 ```
 
