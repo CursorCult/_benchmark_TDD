@@ -1,6 +1,9 @@
 # Python benchmarks
 
-Each directory is a benchmark case.
+Each directory is a benchmark case. Currently available cases:
+- `simple_add`: Basic function addition, no explicit TDD prompt.
+- `simple_add_prompted`: Basic function addition, with explicit TDD instructions in the prompt.
+- `stack_ds`: More complex data structure implementation (Stack).
 
 All cases must run for an aggregate score.
 
@@ -17,4 +20,4 @@ Create the shared Python environment once:
 ## Run
 
 - One case: `cd simple_add && ./run.sh`
-- All cases: `./run_all.sh`
+- All cases: `./run_all.sh` (outputs results to local `off.json`/`on.json` for each case)
