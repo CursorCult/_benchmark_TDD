@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")" && pwd)"
 
 "$root/doctor.sh" >/dev/null
+("$root/setup_env.sh" >/dev/null)
 
 cases=()
 while IFS= read -r d; do
@@ -21,4 +22,3 @@ for case_dir in "${cases[@]}"; do
 done
 
 echo "done"
-

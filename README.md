@@ -21,6 +21,8 @@ Expected shape for compliance:
 ## Running (one case)
 
 ```sh
+cd python
+./setup_env.sh
 cd python/001
 ./run.sh
 ```
@@ -28,4 +30,3 @@ cd python/001
 ## License
 
 Unlicense / public domain. See `LICENSE`.
-

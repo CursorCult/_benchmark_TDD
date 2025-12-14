@@ -24,5 +24,9 @@ if ! cursor-agent status >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "ok"
+if [[ ! -f "$(cd "$(dirname "$0")" && pwd)/requirements.txt" ]]; then
+  echo "missing python/requirements.txt" >&2
+  exit 1
+fi
 
+echo "ok"
