@@ -51,7 +51,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_tests"
   set +e
-  pytest >/dev/null 2>&1
+  python3 -m pytest >/dev/null 2>&1
   rc1=$?
   set -e
   if [[ "$rc1" -ne 0 ]]; then
@@ -60,7 +60,7 @@ if [[ "$commit_count" -eq 2 ]]; then
 
   git checkout -q "$commit_impl"
   set +e
-  pytest >/dev/null 2>&1
+  python3 -m pytest >/dev/null 2>&1
   rc2=$?
   set -e
   if [[ "$rc2" -eq 0 ]]; then
@@ -68,8 +68,8 @@ if [[ "$commit_count" -eq 2 ]]; then
   fi
 
   if [[ "$green_ok" -eq 1 ]]; then
-    coverage run -m pytest >/dev/null 2>&1
-    coverage json -o coverage.json >/dev/null 2>&1
+    python3 -m coverage run -m pytest >/dev/null 2>&1
+    python3 -m coverage json -o coverage.json >/dev/null 2>&1
     coverage_percent="$(python3 "$metrics_dir/python/code_coverage.py" coverage.json)"
   fi
 
