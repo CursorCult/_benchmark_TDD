@@ -35,7 +35,7 @@ pushd "$repo_dir" >/dev/null
 tests_only_ok=0
 red_ok=0
 green_ok=0
-coverage_percent=null
+coverage_percent=""
 
 if [[ "$commit_count" -eq 2 ]]; then
   changed_files="$(git diff --name-only "$base_sha..$commit_tests" || true)"
@@ -89,7 +89,7 @@ PY
 )"
 
 coverage_score="$(python3 - <<PY
-cov = $coverage_percent
+cov = "${coverage_percent}"
 try:
     cov_f = float(cov)
 except Exception:
@@ -107,6 +107,10 @@ PY
 
 python3 - <<PY
 import json
+cov_raw = "${coverage_percent}"
+cov = None
+if cov_raw.strip():
+  cov = float(cov_raw)
 print(json.dumps({
   "case": "001",
   "mode": "$mode",
@@ -123,7 +127,7 @@ print(json.dumps({
     "green_ok": $green_ok,
   },
   "metrics": {
-    "code_coverage_percent": $coverage_percent,
+    "code_coverage_percent": cov,
   },
   "score": float("$score"),
 }, indent=2, sort_keys=True))
