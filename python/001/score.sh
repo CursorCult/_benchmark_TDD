@@ -13,6 +13,7 @@ if [[ -z "$metrics_dir" ]]; then
 fi
 
 base_sha="$(cat "$artifacts_dir/base_sha.txt")"
+agent_rc="$(cat "$artifacts_dir/agent_rc.txt" 2>/dev/null || echo 1)"
 commits=()
 if [[ -f "$artifacts_dir/new_commits.txt" ]]; then
   while IFS= read -r line; do
@@ -114,6 +115,7 @@ if cov_raw.strip():
 print(json.dumps({
   "case": "001",
   "mode": "$mode",
+  "agent_rc": int("$agent_rc"),
   "base_sha": "$base_sha",
   "commits": {
     "count": $commit_count,
